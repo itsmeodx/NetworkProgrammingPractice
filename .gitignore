@@ -53,3 +53,8 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# binary files
+# Exclude the server and client binaries
+client
+server
