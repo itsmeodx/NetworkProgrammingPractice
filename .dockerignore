@@ -1,0 +1,18 @@
+# Ignore build artifacts
+server
+client
+
+# Ignore git files
+.git
+.gitignore
+
+# Ignore documentation
+README.md
+LICENSE
+
+# Ignore Makefile (not needed in containers)
+Makefile
+
+# Ignore Docker files from other directories
+*/Dockerfile
+docker-compose.yml

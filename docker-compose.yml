@@ -1,0 +1,28 @@
+name: NPP
+
+services:
+  server:
+    build:
+      context: ./server_dir
+      dockerfile: Dockerfile
+    container_name: npp_server
+    ports:
+      - "4242:4242"
+    networks:
+      - npp
+    command: ["./server"]
+
+  client:
+    build:
+      context: ./client_dir
+      dockerfile: Dockerfile
+    container_name: npp_client
+    networks:
+      - npp
+    depends_on:
+      - server
+    command: ["./client", "server"]
+
+networks:
+  npp:
+    driver: bridge
