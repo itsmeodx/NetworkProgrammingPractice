@@ -24,7 +24,7 @@ void *getinaddr(struct sockaddr *sa)
 	return (&(((struct sockaddr_in6 *)sa)->sin6_addr));
 }
 
-void sighanlder(int signal)
+void sighandler(int signal)
 {
 	int m_errno = errno;
 
@@ -38,7 +38,7 @@ void install_signals()
 {
 	struct sigaction sa;
 
-	sa.sa_handler = sighanlder;
+	sa.sa_handler = sighandler;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
 
@@ -60,7 +60,7 @@ int main(int argc, char const *argv[])
 		port = argv[1];
 	else
 	{
-		fprintf(stderr, "Usage: server PORT\n");
+		fprintf(stderr, "Usage: server [PORT]\n");
 		return (EXIT_FAILURE);
 	}
 
@@ -76,25 +76,26 @@ int main(int argc, char const *argv[])
 		return (EXIT_FAILURE);
 	}
 
-	int socketfd, yes = 1;
+	int sockfd, yes = 1;
 	struct addrinfo *p;
 	for (p = res; p != NULL; p = p->ai_next)
 	{
-		if ((socketfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
+		if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
 		{
 			perror("server: socket()");
 			continue;
 		}
 
-		if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
 		{
 			perror("server: setsocketopt()");
+			close(sockfd);
 			exit(EXIT_FAILURE);
 		}
 
-		if (bind(socketfd, p->ai_addr, p->ai_addrlen) == -1)
+		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1)
 		{
-			close(socketfd);
+			close(sockfd);
 			perror("server: bind()");
 			continue;
 		}
@@ -107,12 +108,14 @@ int main(int argc, char const *argv[])
 	if (p == NULL)
 	{
 		fprintf(stderr, "server failed!\n");
+		close(sockfd);
 		exit(EXIT_FAILURE);
 	}
 
-	if (listen(socketfd, BACKLOG) == -1)
+	if (listen(sockfd, BACKLOG) == -1)
 	{
 		perror("server: listen()");
+		close(sockfd);
 		exit(EXIT_FAILURE);
 	}
 
@@ -127,19 +130,19 @@ int main(int argc, char const *argv[])
 	char *msg = "Hello World!";
 	while (true)
 	{
-		if ((new_socketfd = accept(socketfd, (struct sockaddr *)&their_addr, &sin_size)) == -1)
+		if ((new_socketfd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size)) == -1)
 		{
 			perror("server: accept()");
 			continue;
 		}
 
 		inet_ntop(their_addr.ss_family, getinaddr((struct sockaddr *)&their_addr), client_ip, sizeof(client_ip));
-		printf("server: got connection from: %s\n", client_ip);
+		printf("server: got connection from %s\n", client_ip);
 
 		if (!fork())
 		{
-			printf("server: new child spawned to handel connection from %s...\n", client_ip);
-			close(socketfd);
+			// printf("server: new child spawned to handle connection from %s...\n", client_ip);
+			close(sockfd);
 			if (send(new_socketfd, msg, strlen(msg), 0) == -1)
 				perror("server: send()");
 			close(new_socketfd);
@@ -148,5 +151,6 @@ int main(int argc, char const *argv[])
 		close(new_socketfd);
 	}
 
+	close(sockfd);
 	return (EXIT_SUCCESS);
 }

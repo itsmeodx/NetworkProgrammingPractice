@@ -9,20 +9,16 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <sys/wait.h>
-#include <signal.h>
 #include <iso646.h>
 
-#define elif else if
-
 #define PORT "4242"
-#define MAXDSIZE 100
+#define MAXDSIZE 10
 
 void *getinaddr(struct sockaddr *sa)
 {
 	if (sa->sa_family == AF_INET)
 		return (&(((struct sockaddr_in *)sa)->sin_addr));
-	return(&(((struct sockaddr_in6 *)sa)->sin6_addr));
+	return (&(((struct sockaddr_in6 *)sa)->sin6_addr));
 }
 
 int main(int argc, char const *argv[])
@@ -48,7 +44,7 @@ int main(int argc, char const *argv[])
 	int rv;
 	if ((rv = getaddrinfo(hostname, port, &hints, &res)) != 0)
 	{
-		fprintf(stderr, "clinet: getaddrinfo: %s\n", gai_strerror(rv));
+		fprintf(stderr, "client: getaddrinfo: %s\n", gai_strerror(rv));
 		return (EXIT_FAILURE);
 	}
 
@@ -64,11 +60,11 @@ int main(int argc, char const *argv[])
 		}
 
 		inet_ntop(p->ai_family, getinaddr((struct sockaddr *)p->ai_addr), s, sizeof(s));
-		printf("client: attempting conncetion to %s...\n", s);
+		// printf("client: attempting connection to %s...\n", s);
 
 		if (connect(socketfd, p->ai_addr, p->ai_addrlen) == -1)
 		{
-			perror("client: accept()");
+			// perror("client: connect()");
 			close(socketfd);
 			continue;
 		}
@@ -83,20 +79,27 @@ int main(int argc, char const *argv[])
 	}
 
 	inet_ntop(p->ai_family, getinaddr((struct sockaddr *)p->ai_addr), s, sizeof(s));
-	printf("client: connceted to %s...\n", s);
+	printf("client: connected to %s...\n", s);
 
-	int rc;
 	char buf[MAXDSIZE];
-	if ((rc = recv(socketfd, buf, MAXDSIZE, 0)) == -1)
+	printf("client: message received: \"");
+	int done = 0;
+	while (!done)
 	{
-		perror("client: recv()");
-		return (EXIT_FAILURE);
+		int rc = recv(socketfd, buf, MAXDSIZE, 0);
+		if (rc <= 0)
+			break;
+		for (int i = 0; i < rc; ++i)
+		{
+			if (buf[i] == '\0')
+			{
+				done = 1;
+				break;
+			}
+			putchar(buf[i]);
+		}
 	}
-
-	buf[rc] = '\0';
-	printf("client: message recieved: \"%s\"\n", buf);
-
+	printf("\"\n");
 	close(socketfd);
-
 	return (EXIT_SUCCESS);
 }
