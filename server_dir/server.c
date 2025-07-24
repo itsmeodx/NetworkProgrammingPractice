@@ -12,9 +12,8 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define elif else if
-
 #define DEFAULT_PORT "4242"
+#define DEFAULT_MSG "Hello from server!"
 #define BACKLOG 5
 
 void *getinaddr(struct sockaddr *sa)
@@ -52,15 +51,24 @@ void install_signals()
 int main(int argc, char const *argv[])
 {
 	struct addrinfo hints, *res;
-	const char *port;
+	const char *port, *msg;
 
-	if (argc < 2)
-		port = DEFAULT_PORT;
-	elif (argc == 2)
+	if (argc > 1 && argc < 4)
+	{
 		port = argv[1];
+		if (argc == 3)
+			msg = argv[2];
+		else
+			msg = DEFAULT_MSG;
+	}
+	else if (argc == 1)
+	{
+		port = DEFAULT_PORT;
+		msg = DEFAULT_MSG;
+	}
 	else
 	{
-		fprintf(stderr, "Usage: server [PORT]\n");
+		fprintf(stderr, "Usage: server [PORT] [MSG]\n");
 		return (EXIT_FAILURE);
 	}
 
@@ -108,7 +116,6 @@ int main(int argc, char const *argv[])
 	if (p == NULL)
 	{
 		fprintf(stderr, "server failed!\n");
-		close(sockfd);
 		exit(EXIT_FAILURE);
 	}
 
@@ -127,7 +134,6 @@ int main(int argc, char const *argv[])
 	socklen_t sin_size = sizeof(their_addr);
 	int new_socketfd;
 	char client_ip[INET6_ADDRSTRLEN];
-	char *msg = "Hello World!";
 	while (true)
 	{
 		if ((new_socketfd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size)) == -1)
