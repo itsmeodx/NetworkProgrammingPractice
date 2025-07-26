@@ -78,7 +78,7 @@ int main(int argc, char const *argv[])
 	int rc;
 	while (true)
 	{
-		printf("listener: waiting to recvfrom...\n");
+		write(STDOUT_FILENO, "listener: waiting to recvfrom...\n", 33);
 
 		if ((rc = recvfrom(sockFd, buf, MAXDSIZE, 0,
 						   (struct sockaddr *)&theirAddr, &addrLen)) == -1)
@@ -94,7 +94,7 @@ int main(int argc, char const *argv[])
 
 		write(STDOUT_FILENO, "listener: got a message from ", 29);
 		write(STDOUT_FILENO, theirIP, strlen(theirIP));
-		write(STDOUT_FILENO, ":\n\t\"", 4);
+		write(STDOUT_FILENO, ":\n", 2);
 		write(STDOUT_FILENO, buf, rc);
 		while (!memchr(buf, '\r', rc))
 		{
@@ -102,7 +102,7 @@ int main(int argc, char const *argv[])
 							   (struct sockaddr *)&theirAddr, &addrLen)) == -1)
 			{
 				// printf();
-				write(STDOUT_FILENO, "\"\n", 2);
+				write(STDOUT_FILENO, "\n", 1);
 				perror("listner: recvfrom()");
 				close(sockFd);
 				return (EXIT_FAILURE);
@@ -111,7 +111,7 @@ int main(int argc, char const *argv[])
 				break;
 			write(STDOUT_FILENO, buf, rc);
 		}
-		write(STDOUT_FILENO, "\"\n", 2);
+		write(STDOUT_FILENO, "\n", 1);
 	}
 
 	close(sockFd);
