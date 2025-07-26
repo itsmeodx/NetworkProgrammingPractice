@@ -3,6 +3,6 @@
 		"*.sh": "shellscript",
 		"config": "shellscript",
 		"*.yml": "yaml",
-		"iso646.h": "c"
+		"*.h": "c"
 	}
 }
