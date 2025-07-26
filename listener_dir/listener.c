@@ -72,7 +72,7 @@ int main(int argc, char const *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	char buf[MAXDSIZE + 1];
+	char buf[MAXDSIZE];
 	struct sockaddr_storage theirAddr;
 	socklen_t addrLen;
 	int rc;
@@ -92,27 +92,26 @@ int main(int argc, char const *argv[])
 		inet_ntop(theirAddr.ss_family,
 				  getinaddr((struct sockaddr *)&theirAddr), theirIP, sizeof(theirIP));
 
-		// NEWPRINT:
-		buf[rc] = '\0';
-		printf("listener: got a message from %s:\n\t\"%s", theirIP, buf);
-		fflush(stdout);
-		while (!strchr(buf, '\r'))
+		write(STDOUT_FILENO, "listener: got a message from ", 29);
+		write(STDOUT_FILENO, theirIP, strlen(theirIP));
+		write(STDOUT_FILENO, ":\n\t\"", 4);
+		write(STDOUT_FILENO, buf, rc);
+		while (!memchr(buf, '\r', rc))
 		{
-			if ((rc = recvfrom(sockFd, buf, MAXDSIZE - 1, 0,
+			if ((rc = recvfrom(sockFd, buf, MAXDSIZE, 0,
 							   (struct sockaddr *)&theirAddr, &addrLen)) == -1)
 			{
-				printf("\"\n");
+				// printf();
+				write(STDOUT_FILENO, "\"\n", 2);
 				perror("listner: recvfrom()");
 				close(sockFd);
 				return (EXIT_FAILURE);
 			}
-			if (strchr(buf, '\r'))
+			if (memchr(buf, '\r', rc))
 				break;
-			buf[rc] = '\0';
-			printf("%s", buf);
-			fflush(stdout);
+			write(STDOUT_FILENO, buf, rc);
 		}
-		printf("\"\n");
+		write(STDOUT_FILENO, "\"\n", 2);
 	}
 
 	close(sockFd);

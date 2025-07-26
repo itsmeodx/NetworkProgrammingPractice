@@ -20,9 +20,9 @@ void *getinaddr(struct sockaddr *sa)
 int main(int argc, char const *argv[])
 {
 	struct addrinfo hints, *theirAddr;
-	const char *hostname, *port, *msg;
+	const char *hostname, *port, *msg = NULL;
 
-	if (argc < 2 or argc > 4)
+	if (argc < 2 || argc > 4)
 	{
 		fprintf(stderr, "Usage: talker hostname [PORT] [MSG]\n");
 		return (EXIT_FAILURE);
@@ -33,14 +33,9 @@ int main(int argc, char const *argv[])
 		port = argv[2];
 		if (argc == 4)
 			msg = argv[3];
-		else
-			msg = DEFAULT_MSG;
 	}
 	else
-	{
 		port = DEFAULT_PORT;
-		msg = DEFAULT_MSG;
-	}
 
 	hints = (struct addrinfo){0};
 	hints.ai_family = AF_INET;
@@ -73,12 +68,26 @@ int main(int argc, char const *argv[])
 	}
 
 	int rc;
-	size_t sent = 0, msglen = strlen(msg), remain, chunk;
-	while (sent < msglen)
+	if (msg)
 	{
-		remain = msglen - sent;
-		chunk = (remain > MAXDSIZE) ? MAXDSIZE : remain;
-		if ((rc = sendto(sockFd, msg + sent, chunk, 0,
+		// Send provided message argument in chunks
+		size_t sent = 0, msglen = strlen(msg), remain, chunk;
+		while (sent < msglen)
+		{
+			remain = msglen - sent;
+			chunk = (remain > MAXDSIZE) ? MAXDSIZE : remain;
+			if ((rc = sendto(sockFd, msg + sent, chunk, 0,
+							 p->ai_addr, p->ai_addrlen)) == -1)
+			{
+				perror("talker: sendto()");
+				close(sockFd);
+				freeaddrinfo(theirAddr);
+				return (EXIT_FAILURE);
+			}
+			sent += chunk;
+			usleep(1000);
+		}
+		if ((rc = sendto(sockFd, "\r", 1, 0,
 						 p->ai_addr, p->ai_addrlen)) == -1)
 		{
 			perror("talker: sendto()");
@@ -86,20 +95,35 @@ int main(int argc, char const *argv[])
 			freeaddrinfo(theirAddr);
 			return (EXIT_FAILURE);
 		}
-		sent += chunk;
-		usleep(1000);
 	}
-
-	if ((rc = sendto(sockFd, "\r", 1, 0,
-					 p->ai_addr, p->ai_addrlen)) == -1)
+	else
 	{
-		perror("talker: sendto()");
-		close(sockFd);
-		freeaddrinfo(theirAddr);
-		return (EXIT_FAILURE);
+		char buf[MAXDSIZE];
+		ssize_t nread;
+		while ((nread = read(STDIN_FILENO, buf, MAXDSIZE)) > 0)
+		{
+			write(1, buf, MAXDSIZE);
+			if ((rc = sendto(sockFd, buf, nread, 0,
+							 p->ai_addr, p->ai_addrlen)) == -1)
+			{
+				perror("talker: sendto()");
+				close(sockFd);
+				freeaddrinfo(theirAddr);
+				return (EXIT_FAILURE);
+			}
+			usleep(1000);
+		}
+		if ((rc = sendto(sockFd, "\r", 1, 0,
+						 p->ai_addr, p->ai_addrlen)) == -1)
+		{
+			perror("talker: sendto()");
+			close(sockFd);
+			freeaddrinfo(theirAddr);
+			return (EXIT_FAILURE);
+		}
 	}
 
-	printf("talker: msg was sent to %s!\n", hostname);
+	printf("talker: message was sent to %s!\n", hostname);
 	freeaddrinfo(theirAddr);
 	close(sockFd);
 
