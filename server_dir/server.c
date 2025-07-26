@@ -1,16 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <errno.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+#include <stdbool.h>
+#include <errno.h>
+#include <unistd.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <iso646.h>
 
 #define DEFAULT_PORT "4242"
 #define DEFAULT_MSG "Hello from server!"
@@ -50,10 +48,10 @@ void install_signals()
 
 int main(int argc, char const *argv[])
 {
-	struct addrinfo hints, *res;
+	struct addrinfo hints, *myAddr;
 	const char *port, *msg;
 
-	if (argc > 1 && argc < 4)
+	if (argc > 1 and argc < 4)
 	{
 		port = argv[1];
 		if (argc == 3)
@@ -78,32 +76,32 @@ int main(int argc, char const *argv[])
 	hints.ai_flags = AI_PASSIVE;
 
 	int rv;
-	if ((rv = getaddrinfo(NULL, port, &hints, &res)) != 0)
+	if ((rv = getaddrinfo(NULL, port, &hints, &myAddr)) != 0)
 	{
-		fprintf(stderr, "server: getaddrinfo: %s\n", gai_strerror(rv));
+		fprintf(stderr, "server: getaddrinfo(): %s\n", gai_strerror(rv));
 		return (EXIT_FAILURE);
 	}
 
-	int sockfd, yes = 1;
+	int sockFd, yes = 1;
 	struct addrinfo *p;
-	for (p = res; p != NULL; p = p->ai_next)
+	for (p = myAddr; p != NULL; p = p->ai_next)
 	{
-		if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
+		if ((sockFd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
 		{
 			perror("server: socket()");
 			continue;
 		}
 
-		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+		if (setsockopt(sockFd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
 		{
 			perror("server: setsocketopt()");
-			close(sockfd);
-			exit(EXIT_FAILURE);
+			close(sockFd);
+			continue;
 		}
 
-		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1)
+		if (bind(sockFd, p->ai_addr, p->ai_addrlen) == -1)
 		{
-			close(sockfd);
+			close(sockFd);
 			perror("server: bind()");
 			continue;
 		}
@@ -111,18 +109,18 @@ int main(int argc, char const *argv[])
 		break;
 	}
 
-	freeaddrinfo(res);
+	freeaddrinfo(myAddr);
 
 	if (p == NULL)
 	{
-		fprintf(stderr, "server failed!\n");
+		fprintf(stderr, "server: failed to start!\n");
 		exit(EXIT_FAILURE);
 	}
 
-	if (listen(sockfd, BACKLOG) == -1)
+	if (listen(sockFd, BACKLOG) == -1)
 	{
 		perror("server: listen()");
-		close(sockfd);
+		close(sockFd);
 		exit(EXIT_FAILURE);
 	}
 
@@ -130,33 +128,33 @@ int main(int argc, char const *argv[])
 
 	printf("server: waiting for connections...\n");
 
-	struct sockaddr_storage their_addr;
-	socklen_t sin_size = sizeof(their_addr);
-	int new_socketfd;
-	char client_ip[INET6_ADDRSTRLEN];
+	struct sockaddr_storage theirAddr;
+	socklen_t addrLen = sizeof(theirAddr);
+	int newSockFd;
+	char theirIP[INET6_ADDRSTRLEN];
 	while (true)
 	{
-		if ((new_socketfd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size)) == -1)
+		if ((newSockFd = accept(sockFd, (struct sockaddr *)&theirAddr, &addrLen)) == -1)
 		{
 			perror("server: accept()");
 			continue;
 		}
 
-		inet_ntop(their_addr.ss_family, getinaddr((struct sockaddr *)&their_addr), client_ip, sizeof(client_ip));
-		printf("server: got connection from %s\n", client_ip);
+		inet_ntop(theirAddr.ss_family, getinaddr((struct sockaddr *)&theirAddr), theirIP, sizeof(theirIP));
+		printf("server: got connection from %s\n", theirIP);
 
 		if (!fork())
 		{
-			// printf("server: new child spawned to handle connection from %s...\n", client_ip);
-			close(sockfd);
-			if (send(new_socketfd, msg, strlen(msg), 0) == -1)
+			// printf("server: new child spawned to handle connection from %s...\n", theirIP);
+			close(sockFd);
+			if (send(newSockFd, msg, strlen(msg), 0) == -1)
 				perror("server: send()");
-			close(new_socketfd);
+			close(newSockFd);
 			exit(EXIT_SUCCESS);
 		}
-		close(new_socketfd);
+		close(newSockFd);
 	}
 
-	close(sockfd);
+	close(sockFd);
 	return (EXIT_SUCCESS);
 }
