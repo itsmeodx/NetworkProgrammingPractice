@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Werror -O2
 DEBUG_FLAGS = -g -DDEBUG
 
-all: server client
+all: server client listener talker
 
 server: server_dir/server.c
 	$(CC) $(CFLAGS) -o server server_dir/server.c
@@ -10,11 +10,17 @@ server: server_dir/server.c
 client: client_dir/client.c
 	$(CC) $(CFLAGS) -o client client_dir/client.c
 
+listener: listener_dir/listener.c
+	$(CC) $(CFLAGS) -o listener listener_dir/listener.c
+
+talker: talker_dir/talker.c
+	$(CC) $(CFLAGS) -o talker talker_dir/talker.c
+
 debug: CFLAGS += $(DEBUG_FLAGS)
 debug: server client
 
 clean:
-	rm -f server client
+	rm -f server client listener talker
 
 re: clean all
 
