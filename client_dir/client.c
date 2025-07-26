@@ -2,11 +2,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <iso646.h>
@@ -23,7 +18,7 @@ void *getinaddr(struct sockaddr *sa)
 
 int main(int argc, char const *argv[])
 {
-	struct addrinfo hints, *res;
+	struct addrinfo hints, *theirAddr;
 	const char *hostname, *port;
 
 	if (argc < 2 or argc > 3)
@@ -42,30 +37,30 @@ int main(int argc, char const *argv[])
 	hints.ai_socktype = SOCK_STREAM;
 
 	int rv;
-	if ((rv = getaddrinfo(hostname, port, &hints, &res)) != 0)
+	if ((rv = getaddrinfo(hostname, port, &hints, &theirAddr)) != 0)
 	{
-		fprintf(stderr, "client: getaddrinfo: %s\n", gai_strerror(rv));
+		fprintf(stderr, "client: getaddrinfo(): %s\n", gai_strerror(rv));
 		return (EXIT_FAILURE);
 	}
 
 	struct addrinfo *p;
-	char s[INET6_ADDRSTRLEN];
-	int socketfd;
-	for (p = res; p != NULL; p = p->ai_next)
+	char theirIP[INET6_ADDRSTRLEN];
+	int sockFd;
+	for (p = theirAddr; p != NULL; p = p->ai_next)
 	{
-		if ((socketfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
+		if ((sockFd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
 		{
 			perror("client: socket()");
 			continue;
 		}
 
-		inet_ntop(p->ai_family, getinaddr((struct sockaddr *)p->ai_addr), s, sizeof(s));
-		// printf("client: attempting connection to %s...\n", s);
+		// inet_ntop(p->ai_family, getinaddr((struct sockaddr *)p->ai_addr), theirIP, sizeof(theirIP));
+		// printf("client: attempting connection to %s...\n", theirIP);
 
-		if (connect(socketfd, p->ai_addr, p->ai_addrlen) == -1)
+		if (connect(sockFd, p->ai_addr, p->ai_addrlen) == -1)
 		{
 			// perror("client: connect()");
-			close(socketfd);
+			close(sockFd);
 			continue;
 		}
 
@@ -78,22 +73,24 @@ int main(int argc, char const *argv[])
 		return (EXIT_FAILURE);
 	}
 
-	inet_ntop(p->ai_family, getinaddr((struct sockaddr *)p->ai_addr), s, sizeof(s));
-	printf("client: connected to %s...\n", s);
+	inet_ntop(p->ai_family, getinaddr((struct sockaddr *)p->ai_addr), theirIP, sizeof(theirIP));
+	printf("client: connected to %s...\n", theirIP);
+
+	freeaddrinfo(theirAddr);
 
 	char buf[MAXDSIZE];
 	printf("client: message received: \"");
-	int rc, done = 0;
+	int rc, done = false;
 	while (!done)
 	{
-		rc = recv(socketfd, buf, MAXDSIZE, 0);
+		rc = recv(sockFd, buf, MAXDSIZE, 0);
 		if (rc <= 0)
 			break;
 		for (int i = 0; i < rc; ++i)
 		{
 			if (buf[i] == '\0')
 			{
-				done = 1;
+				done = true;
 				break;
 			}
 			putchar(buf[i]);
@@ -102,6 +99,6 @@ int main(int argc, char const *argv[])
 	printf("\"\n");
 	if (rc == -1)
 		perror("client: recv()");
-	close(socketfd);
+	close(sockFd);
 	return (EXIT_SUCCESS);
 }
