@@ -83,10 +83,10 @@ int main(int argc, char const *argv[])
 
 	char buf[MAXDSIZE];
 	printf("client: message received: \"");
-	int done = 0;
+	int rc, done = 0;
 	while (!done)
 	{
-		int rc = recv(socketfd, buf, MAXDSIZE, 0);
+		rc = recv(socketfd, buf, MAXDSIZE, 0);
 		if (rc <= 0)
 			break;
 		for (int i = 0; i < rc; ++i)
@@ -100,6 +100,8 @@ int main(int argc, char const *argv[])
 		}
 	}
 	printf("\"\n");
+	if (rc == -1)
+		perror("client: recv()");
 	close(socketfd);
 	return (EXIT_SUCCESS);
 }
