@@ -58,3 +58,5 @@ dkms.conf
 # Exclude the server and client binaries
 client
 server
+talker
+listener
