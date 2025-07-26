@@ -102,7 +102,6 @@ int main(int argc, char const *argv[])
 		ssize_t nread;
 		while ((nread = read(STDIN_FILENO, buf, MAXDSIZE)) > 0)
 		{
-			write(1, buf, MAXDSIZE);
 			if ((rc = sendto(sockFd, buf, nread, 0,
 							 p->ai_addr, p->ai_addrlen)) == -1)
 			{
