@@ -3,18 +3,16 @@ name: NPP
 services:
   server:
     build:
-      context: ./server_dir
+      context: ./TCP/server_dir
       dockerfile: Dockerfile
     container_name: npp_server
-    ports:
-      - "4242:4242"
     networks:
       - npp
     command: ["./server"]
 
   client:
     build:
-      context: ./client_dir
+      context: ./TCP/client_dir
       dockerfile: Dockerfile
     container_name: npp_client
     networks:
@@ -22,6 +20,26 @@ services:
     depends_on:
       - server
     command: ["./client", "server"]
+
+  listener:
+    build:
+      context: ./UDP/listener_dir
+      dockerfile: Dockerfile
+    container_name: npp_listener
+    networks:
+      - npp
+    command: ["./listener"]
+
+  talker:
+    build:
+      context: ./UDP/talker_dir
+      dockerfile: Dockerfile
+    container_name: npp_talker
+    networks:
+      - npp
+    depends_on:
+      - listener
+    command: ["./talker", "listener"]
 
 networks:
   npp:

@@ -89,4 +89,4 @@ help:
 	@echo "  docker-restart         - Restart all containers"
 	@echo "  docker-clean           - Stop and remove containers, images, volumes"
 
-.PHONY: all clean re debug TCP UDP server client listener talker run-server run-client test help docker-build docker-up docker-run docker-down docker-restart docker-logs docker-logs-server docker-logs-client docker-clean docker-prune
+.PHONY: all clean re debug TCP UDP run-server run-client test help docker-build docker-up docker-run docker-down docker-restart docker-logs docker-logs-server docker-logs-client docker-clean docker-prune
