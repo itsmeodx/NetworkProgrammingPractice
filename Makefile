@@ -1,28 +1,51 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -Werror -O2
-DEBUG_FLAGS = -g -DDEBUG
 
-all: server client listener talker
+# Compiler and flags
+CC := gcc
+CFLAGS := -Wall -Wextra -Werror -O2
+DEBUG_FLAGS := -g -DDEBUG
 
-server: server_dir/server.c
-	$(CC) $(CFLAGS) -o server server_dir/server.c
+# Directories
+TCP_DIR := TCP
+UDP_DIR := UDP
 
-client: client_dir/client.c
-	$(CC) $(CFLAGS) -o client client_dir/client.c
+# Source files
+TCP_SRCS := $(TCP_DIR)/server_dir/server.c $(TCP_DIR)/client_dir/client.c
+UDP_SRCS := $(UDP_DIR)/listener_dir/listener.c $(UDP_DIR)/talker_dir/talker.c
 
-listener: listener_dir/listener.c
-	$(CC) $(CFLAGS) -o listener listener_dir/listener.c
+# Binaries
+TCP_BINS := server client
+UDP_BINS := listener talker
+BINS := $(TCP_BINS) $(UDP_BINS)
 
-talker: talker_dir/talker.c
-	$(CC) $(CFLAGS) -o talker talker_dir/talker.c
+all: $(BINS)
+
+TCP: $(TCP_BINS)
+
+UDP: $(UDP_BINS)
+
+server: TCP/server_dir/server.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+client: TCP/client_dir/client.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+listener: UDP/listener_dir/listener.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+talker: UDP/talker_dir/talker.c
+	$(CC) $(CFLAGS) -o $@ $<
 
 debug: CFLAGS += $(DEBUG_FLAGS)
 debug: server client
 
 clean:
-	rm -f server client listener talker
+	rm -f $(BINS)
 
 re: clean all
+
+test-tcp: all
+	@echo "Testing..."
+	@./server & sleep 1; ./client localhost; kill $$!
 
 # Docker commands
 docker-build:
@@ -45,17 +68,6 @@ docker-logs:
 docker-clean:
 	docker-compose down -t 0 --rmi all --volumes --remove-orphans
 
-# Development helpers
-run-server: server
-	./server
-
-run-client: client
-	./client localhost
-
-test: all
-	@echo "Testing..."
-	@./server & sleep 1; ./client localhost; kill $$!
-
 help:
 	@echo "Build targets:"
 	@echo "  all                    - Build both server and client"
@@ -66,8 +78,6 @@ help:
 	@echo "  re                     - Clean and rebuild all"
 	@echo ""
 	@echo "Development:"
-	@echo "  run-server             - Build and run server (port 4242)"
-	@echo "  run-client             - Build and run client (connects to localhost)"
 	@echo "  test                   - Run basic functionality test"
 	@echo ""
 	@echo "Docker:"
@@ -79,4 +89,4 @@ help:
 	@echo "  docker-restart         - Restart all containers"
 	@echo "  docker-clean           - Stop and remove containers, images, volumes"
 
-.PHONY: all clean re debug run-server run-client test help docker-build docker-up docker-run docker-down docker-restart docker-logs docker-logs-server docker-logs-client docker-clean docker-prune
+.PHONY: all clean re debug TCP UDP server client listener talker run-server run-client test help docker-build docker-up docker-run docker-down docker-restart docker-logs docker-logs-server docker-logs-client docker-clean docker-prune
