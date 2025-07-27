@@ -1,101 +1,120 @@
-# NetworkProgrammingPractice (NPP)
 
-A simple C network programming project demonstrating TCP client-server communication.
 
-## 📋 Overview
 
-- **Server**: Multi-threaded TCP server that listens on port 4242 and sends "Hello World!" to connecting clients
-- **Client**: TCP client that connects to the server and displays received messages
-- **Features**: Fork-based concurrency, signal handling, and Docker containerization
+# NetworkProgrammingPractice
+
+TCP and UDP networking in C. Chunked transfer, delimiter handling, and simple build/test with Makefile and Docker.
+
+## Overview
+
+- **TCP Server**: `server [MSG] [PORT]`
+- **TCP Client**: `client hostname [PORT]`
+- **UDP Listener**: `listener [PORT]`
+- **UDP Talker**: `talker hostname [MSG] [PORT]`
+
+All binaries are built in the project root. See `Makefile` and `docker-compose.yml` for details.
+
 
 ## 🚀 Quick Start
 
 ### Local Development
 ```bash
-make all          # Build both server and client
-make test         # Run automated test
-make run-server   # Start server (Terminal 1)
-make run-client   # Connect client (Terminal 2)
-```
-
-### Docker (Recommended)
-```bash
-make docker-up    # Run in containers
-make docker-logs  # View communication logs
-make docker-down  # Stop when done
-```
-
-## 🛠️ Build Commands
-
-### Build Targets
-```bash
-make all          # Build both server and client
-make server       # Build server only
-make client       # Build client only
-make debug        # Build with debug symbols and flags
+make all          # Build all binaries (TCP and UDP)
+make server       # Build TCP server only
+make client       # Build TCP client only
+make listener     # Build UDP listener only
+make talker       # Build UDP talker only
+make test-tcp     # Run TCP test (server+client)
 make clean        # Remove built binaries
 make re           # Clean and rebuild all
 ```
 
-### Development
-```bash
-make run-server   # Build and run server (port 4242)
-make run-client   # Build and run client (connects to localhost)
-make test         # Run basic functionality test
-make help         # Show all available commands
-```
 
-## 🐳 Docker Commands
-
-### Essential
+### Docker
 ```bash
-make docker-up    # Run containers in background
+make docker-up    # Build and run all services in containers
+make docker-logs  # View all container logs
 make docker-down  # Stop all containers
-make docker-logs  # Follow all container logs
 ```
 
-### Advanced
-```bash
-make docker-build    # Build Docker images from scratch
-make docker-run      # Run containers in foreground
-make docker-restart  # Restart all containers
-make docker-clean    # Stop and remove containers, images, volumes
+
+## 🛠️ Build System
+
+- Uses a single Makefile with explicit rules for each binary.
+- Source files are in `TCP/server_dir`, `TCP/client_dir`, `UDP/listener_dir`, `UDP/talker_dir`.
+- Binaries are built in the project root: `server`, `client`, `listener`, `talker`.
+- `make debug` adds debug flags.
+
+- Multi-stage builds for minimal images (Alpine runtime).
+- All four services (TCP and UDP) are included in `docker-compose.yml` by default.
+- Each service has its own Dockerfile in its source directory.
+- No ports are mapped to the host by default; containers communicate on an internal Docker network.
+
+
+## 🏗️ Project Structure
+
+```
+NetworkProgrammingPractice/
+├── Makefile
+├── docker-compose.yml
+├── TCP/
+│   ├── server_dir/
+│   │   ├── server.c
+│   │   └── Dockerfile
+│   └── client_dir/
+│       ├── client.c
+│       └── Dockerfile
+├── UDP/
+│   ├── listener_dir/
+│   │   └── listener.c
+│   └── talker_dir/
+│       └── talker.c
+├── server
+├── client
+├── listener
+├── talker
 ```
 
-## 🏗️ Architecture
-
-### Docker Setup
-- **Multi-stage build**: GCC compilation → Alpine runtime
-- **Image size**: ~9.5MB (vs ~1.45GB with full GCC)
-- **Network**: Custom bridge network with internal DNS
-- **Static linking**: Portable binaries for minimal containers
-
-### Network Flow
-```
-Host Machine (port 4242)
-    ↓
-Server Container (Alpine ~9.5MB)
-    ↓ (internal network)
-Client Container (Alpine ~9.5MB)
-```
-
-### Build Process
-```
-Stage 1: GCC Container
-├── Compile with -static flag
-├── Include all dependencies
-└── Generate portable binary
-
-Stage 2: Alpine Container
-├── Copy binary from build stage
-├── No build tools or libraries
-└── Minimal runtime environment
-```
 
 ## 🔧 Technical Details
 
 - **Language**: C with POSIX sockets
-- **Concurrency**: Fork-based server (one process per client)
-- **Signal handling**: SIGCHLD cleanup for zombie processes
-- **Compiler flags**: `-Wall -Wextra -Werror -O2` for optimized builds
-- **Network**: IPv4/IPv6 compatible with `getaddrinfo()`
+- **TCP**: Fork-based server, SIGCHLD handling, IPv4/IPv6 support
+- **UDP**: Chunked datagram transfer, delimiter-based message boundaries
+- **Compiler flags**: `-Wall -Wextra -Werror -O2` (plus `-g -DDEBUG` for debug)
+- **Docker**: Multi-stage, static binaries, minimal images
+
+## 📚 Usage Examples
+
+### TCP
+- Start server: `./server [MSG] [PORT]` (e.g. `./server "Hey!" 4242`).\
+If message omitted, uses default "Hello from server!"; if port omitted, uses 4242.
+- Start client: `./client hostname [PORT]` (e.g. `./client localhost 4242`).\
+If port omitted, uses 4242.
+
+### UDP
+- Start listener: `./listener [PORT]` (e.g. `./listener 4343`).\
+If port omitted, uses default 4242.
+- Start talker: `./talker hostname [MSG] [PORT]` (e.g. `./talker localhost "Hello world" 4343` or `echo "Hello world" | ./talker localhost`).\
+If message omitted, reads from stdin; if port omitted, uses 4242.
+## 📡 Protocol Details
+
+- **TCP**: Server sends a null-terminated message to each client. Client prints until null terminator or connection closes.
+- **UDP**: Talker sends message in MAXDSIZE chunks, then a single datagram of size 1 and value `\r` as delimiter. Listener prints all received data until it receives a datagram of size 1 and value `\r` (not just any datagram containing `\r`).
+
+
+## 🆘 Help
+
+Run `make help` for a full list of available targets and commands.
+
+---
+
+For more details, see the source files in the TCP and UDP directories.
+
+---
+Project maintained by itsmeodx. For questions, see code comments or open an issue.
+
+---
+
+<sub>© 2025 itsmeodx. Licensed under the GNU General Public License v3.0.</sub>
+
