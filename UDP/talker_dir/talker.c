@@ -22,7 +22,7 @@ int main(int argc, char const *argv[])
 	struct addrinfo hints, *theirAddr;
 	const char *hostname, *port, *msg;
 
-	if (argc < 2 || argc > 4)
+	if (argc < 2 or argc > 4)
 	{
 		fprintf(stderr, "Usage: talker hostname [MSG] [PORT]\n");
 		return (EXIT_FAILURE);
