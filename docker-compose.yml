@@ -1,45 +1,62 @@
+---
 name: NPP
-
 services:
   server:
+    container_name: npp_server
     build:
       context: ./TCP/server_dir
-      dockerfile: Dockerfile
-    container_name: npp_server
+    expose:
+      - 4242
     networks:
       - npp
-    command: ["./server"]
-
+    command:
+      - ./server
+      - Hello from Server!
+    stdin_open: true
+    tty: true
   client:
+    container_name: npp_client
     build:
       context: ./TCP/client_dir
-      dockerfile: Dockerfile
-    container_name: npp_client
-    networks:
-      - npp
     depends_on:
       - server
-    command: ["./client", "server"]
-
+    expose:
+      - 4242
+    networks:
+      - npp
+    command:
+      - ./client
+      - server
+    stdin_open: true
+    tty: true
   listener:
+    container_name: npp_listener
     build:
       context: ./UDP/listener_dir
-      dockerfile: Dockerfile
-    container_name: npp_listener
+    expose:
+      - 4242
     networks:
       - npp
-    command: ["./listener"]
-
+    command:
+      - ./listener
+    stdin_open: true
+    tty: true
   talker:
+    container_name: npp_talker
     build:
       context: ./UDP/talker_dir
-      dockerfile: Dockerfile
-    container_name: npp_talker
-    networks:
-      - npp
     depends_on:
       - listener
-    command: ["./talker", "listener"]
+    expose:
+      - 4242
+    networks:
+      - npp
+    command:
+      - ./talker
+      - listener
+      - Hello from Talker!
+    stdin_open: true
+    tty: true
 
 networks:
   npp:
