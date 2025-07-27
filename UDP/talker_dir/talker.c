@@ -20,22 +20,27 @@ void *getinaddr(struct sockaddr *sa)
 int main(int argc, char const *argv[])
 {
 	struct addrinfo hints, *theirAddr;
-	const char *hostname, *port, *msg = NULL;
+	const char *hostname, *port, *msg;
 
 	if (argc < 2 || argc > 4)
 	{
-		fprintf(stderr, "Usage: talker hostname [PORT] [MSG]\n");
+		fprintf(stderr, "Usage: talker hostname [MSG] [PORT]\n");
 		return (EXIT_FAILURE);
 	}
 	hostname = argv[1];
 	if (argc > 2)
 	{
-		port = argv[2];
+		msg = argv[2];
 		if (argc == 4)
-			msg = argv[3];
+			port = argv[3];
+		else
+			port = DEFAULT_PORT;
 	}
 	else
+	{
+		msg = NULL;
 		port = DEFAULT_PORT;
+	}
 
 	hints = (struct addrinfo){0};
 	hints.ai_family = AF_INET;
