@@ -51,23 +51,23 @@ int main(int argc, char const *argv[])
 	struct addrinfo hints, *myAddr;
 	const char *port, *msg;
 
-	if (argc > 1 and argc < 4)
+	if (argc < 1 or argc > 3)
 	{
-		port = argv[1];
-		if (argc == 3)
-			msg = argv[2];
-		else
-			msg = DEFAULT_MSG;
+		fprintf(stderr, "Usage: server [MSG] [PORT]\n");
+		return (EXIT_FAILURE);
 	}
-	else if (argc == 1)
+	if (argc > 1)
 	{
-		port = DEFAULT_PORT;
-		msg = DEFAULT_MSG;
+		msg = argv[1];
+		if (argc == 3)
+			port = argv[2];
+		else
+			port = DEFAULT_PORT;
 	}
 	else
 	{
-		fprintf(stderr, "Usage: server [PORT] [MSG]\n");
-		return (EXIT_FAILURE);
+		msg = DEFAULT_MSG;
+		port = DEFAULT_PORT;
 	}
 
 	hints = (struct addrinfo){0};
