@@ -43,10 +43,13 @@ clean:
 
 re: clean all
 
-test-tcp: all
-	@echo "Testing..."
-	@./server & sleep 1; ./client localhost; kill $$!
+test-tcp: TCP
+	@echo "Testing TCP..."
+	@./server "Hello TCP!" & sleep 1; ./client localhost; kill $$!
 
+test-udp: UDP
+	@echo "Testing UDP..."
+	@./listener & sleep 1; echo "Hello UDP!" | ./talker localhost; kill $$!;
 # Docker commands
 docker-build:
 	docker-compose build --no-cache
