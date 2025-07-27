@@ -92,14 +92,14 @@ int main(int argc, char const *argv[])
 		inet_ntop(theirAddr.ss_family,
 				  getinaddr((struct sockaddr *)&theirAddr), theirIP, sizeof(theirIP));
 
-		printf("listener: got a message from %s:\n\"%.*s", theirIP, rc, buf);
+		printf("listener: got a message from %s:\n%.*s", theirIP, rc, buf);
 		fflush(stdout);
 		while (!memchr(buf, '\r', rc) || rc != 1)
 		{
 			if ((rc = recvfrom(sockFd, buf, MAXDSIZE, 0,
 							   (struct sockaddr *)&theirAddr, &addrLen)) == -1)
 			{
-				printf("\"\n");
+				printf("\n");
 				perror("listner: recvfrom()");
 				close(sockFd);
 				return (EXIT_FAILURE);
@@ -108,7 +108,7 @@ int main(int argc, char const *argv[])
 				break;
 			printf("%.*s", rc, buf);
 		}
-		printf("\"\n");
+		printf("\n");
 	}
 
 	close(sockFd);
