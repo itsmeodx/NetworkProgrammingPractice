@@ -100,7 +100,7 @@ int main(int argc, char const *argv[])
 	// Main receive loop: print message up to delimiter '\r'
 	char buf[MAXDSIZE];
 	struct sockaddr_storage theirAddr;
-	socklen_t addrLen;
+	socklen_t addrLen = sizeof(theirAddr);
 	int rc;
 	while (true)
 	{
