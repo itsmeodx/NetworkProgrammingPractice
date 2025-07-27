@@ -1,3 +1,12 @@
+
+/**
+ * @file client.c
+ * @brief TCP client: connects to server and prints received message.
+ *
+ * Usage: client hostname [PORT]
+ *   - If PORT is omitted, uses default 4242.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -9,6 +18,10 @@
 #define PORT "4242"
 #define MAXDSIZE 10
 
+
+/**
+ * @brief Extracts pointer to IPv4 or IPv6 address from sockaddr.
+ */
 void *getinaddr(struct sockaddr *sa)
 {
 	if (sa->sa_family == AF_INET)
@@ -16,11 +29,15 @@ void *getinaddr(struct sockaddr *sa)
 	return (&(((struct sockaddr_in6 *)sa)->sin6_addr));
 }
 
+/**
+ * @brief Main entry point. Connects to TCP server and prints received message.
+ */
 int main(int argc, char const *argv[])
 {
 	struct addrinfo hints, *theirAddr;
 	const char *hostname, *port;
 
+	// Parse arguments: hostname required, PORT optional
 	if (argc < 2 or argc > 3)
 	{
 		fprintf(stderr, "Usage: client hostname [PORT]\n");
@@ -32,10 +49,12 @@ int main(int argc, char const *argv[])
 	else
 		port = PORT;
 
+	// Setup TCP socket hints
 	hints = (struct addrinfo){0};
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
+	// Resolve server address
 	int rv;
 	if ((rv = getaddrinfo(hostname, port, &hints, &theirAddr)) != 0)
 	{
@@ -43,20 +62,24 @@ int main(int argc, char const *argv[])
 		return (EXIT_FAILURE);
 	}
 
+	// Create and connect TCP socket
 	struct addrinfo *p;
 	char theirIP[INET6_ADDRSTRLEN];
 	int sockFd;
 	for (p = theirAddr; p != NULL; p = p->ai_next)
 	{
+		// Create socket
 		if ((sockFd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
 		{
 			perror("client: socket()");
 			continue;
 		}
 
+		// Get server IP address for debugging
 		// inet_ntop(p->ai_family, getinaddr((struct sockaddr *)p->ai_addr), theirIP, sizeof(theirIP));
 		// printf("client: attempting connection to %s...\n", theirIP);
 
+		// Connect to server
 		if (connect(sockFd, p->ai_addr, p->ai_addrlen) == -1)
 		{
 			// perror("client: connect()");
@@ -67,20 +90,25 @@ int main(int argc, char const *argv[])
 		break;
 	}
 
+	// Check if we successfully connected
 	if (p == NULL)
 	{
 		fprintf(stderr, "client: failed to connect\n");
 		return (EXIT_FAILURE);
 	}
 
+	// Get server IP address for confirmation
 	inet_ntop(p->ai_family, getinaddr((struct sockaddr *)p->ai_addr), theirIP, sizeof(theirIP));
 	printf("client: connected to %s...\n", theirIP);
 
+	// No longer needed
 	freeaddrinfo(theirAddr);
 
+	// Receive and print message from server
 	char buf[MAXDSIZE];
 	printf("client: message received: \"");
 	int rc, done = false;
+	// Read until null terminator or error
 	while (!done)
 	{
 		rc = recv(sockFd, buf, MAXDSIZE, 0);
@@ -97,8 +125,10 @@ int main(int argc, char const *argv[])
 		}
 	}
 	printf("\"\n");
+
 	if (rc == -1)
 		perror("client: recv()");
+
 	close(sockFd);
 	return (EXIT_SUCCESS);
 }
