@@ -1,6 +1,13 @@
 # Ignore build artifacts
+
+# Project binaries
 server
 client
+listener
+talker
+
+# Editor folders
+.vscode/
 
 # Ignore git files
 .git
