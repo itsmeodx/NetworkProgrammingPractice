@@ -19,7 +19,6 @@
 #define DEFAULT_PORT "4242"
 #define MAXDSIZE 10
 
-
 /**
  * @brief Extracts pointer to IPv4 or IPv6 address from sockaddr.
  */
@@ -96,6 +95,9 @@ int main(int argc, char const *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	// Disable buffering for stdout and stderr
+	setbuf(stdout, NULL);
+	setbuf(stderr, NULL);
 
 	// Main receive loop: print message up to delimiter '\r'
 	char buf[MAXDSIZE];
@@ -121,7 +123,6 @@ int main(int argc, char const *argv[])
 				  getinaddr((struct sockaddr *)&theirAddr), theirIP, sizeof(theirIP));
 
 		printf("listener: got a message from %s:\n%.*s", theirIP, rc, buf);
-		fflush(stdout);
 		// Continue receiving until a datagram of size 1 and buf[0] == '\r' is found
 		while (!(rc == 1 && buf[0] == '\r'))
 		{
