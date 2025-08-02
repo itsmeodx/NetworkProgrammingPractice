@@ -55,8 +55,8 @@ dkms.conf
 *.dwo
 
 # binary files
-# Exclude the server and client binaries
 client
 server
+chatserver
 talker
 listener
