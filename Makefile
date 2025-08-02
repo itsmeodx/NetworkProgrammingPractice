@@ -29,6 +29,9 @@ server: TCP/server_dir/server.c
 client: TCP/client_dir/client.c
 	$(CC) $(CFLAGS) -o $@ $<
 
+chatserver: TCP/chatserver_dir/chatserver_dir.c
+	$(CC) $(CFLAGS) -o $@ $<
+
 listener: UDP/listener_dir/listener.c
 	$(CC) $(CFLAGS) -o $@ $<
 
