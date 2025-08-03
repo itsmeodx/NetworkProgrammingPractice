@@ -37,6 +37,20 @@ void *getinaddr(struct sockaddr *sa)
 }
 
 /**
+ * @brief Portable IP string extraction from sockaddr (IPv4/IPv6)
+ * @param sa Pointer to sockaddr
+ * @param out Buffer to write IP string
+ * @param outlen Length of buffer
+ * @return out on success, NULL on failure
+ */
+const char *inet_ntop2(const struct sockaddr *sa, char *out, socklen_t outlen)
+{
+	void *addr = getinaddr((struct sockaddr *)sa);
+
+	return (inet_ntop(sa->sa_family, addr, out, outlen));
+}
+
+/**
  * @brief Enable raw mode for terminal input
  */
 void enable_raw_mode(void)
@@ -284,7 +298,8 @@ int main(int argc, char const *argv[])
 	}
 
 	// Get server IP address for confirmation
-	inet_ntop(p->ai_family, getinaddr((struct sockaddr *)p->ai_addr), serverIP, sizeof(serverIP));
+	if (!inet_ntop2((struct sockaddr *)p->ai_addr, serverIP, sizeof(serverIP)))
+		strcpy(serverIP, "?");
 	printf("ChatClient: connected to %s:%s\n", serverIP, port);
 	printf("ChatClient: type your messages and press Enter to send\n");
 	printf("ChatClient: press Ctrl+C or Ctrl+D to quit\n");
