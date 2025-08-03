@@ -9,7 +9,7 @@ TCP_DIR := TCP
 UDP_DIR := UDP
 
 # Source files
-TCP_SRCS := $(TCP_DIR)/server_dir/server.c $(TCP_DIR)/client_dir/client.c $(TCP_DIR)/chatserver_dir/chatserver_dir.c $(TCP_DIR)/chatclient_dir/chatclient.c
+TCP_SRCS := $(TCP_DIR)/server_dir/server.c $(TCP_DIR)/client_dir/client.c $(TCP_DIR)/chatserver_dir/chatserver.c $(TCP_DIR)/chatclient_dir/chatclient.c
 UDP_SRCS := $(UDP_DIR)/listener_dir/listener.c $(UDP_DIR)/talker_dir/talker.c
 
 # Binaries
@@ -29,7 +29,7 @@ server: TCP/server_dir/server.c
 client: TCP/client_dir/client.c
 	$(CC) $(CFLAGS) -o $@ $<
 
-chatserver: TCP/chatserver_dir/chatserver_dir.c
+chatserver: TCP/chatserver_dir/chatserver.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 chatclient: TCP/chatclient_dir/chatclient.c

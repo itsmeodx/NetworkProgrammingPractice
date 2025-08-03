@@ -5,10 +5,10 @@ FROM gcc:latest AS builder
 WORKDIR /app
 
 # Copy the chatserver source code
-COPY chatserver_dir.c .
+COPY chatserver.c .
 
 # Compile the chatserver statically
-RUN gcc -Wall -Wextra -Werror -static -o chatserver chatserver_dir.c
+RUN gcc -Wall -Wextra -Werror -static -o chatserver chatserver.c
 
 # Runtime stage using Alpine
 FROM alpine:latest
