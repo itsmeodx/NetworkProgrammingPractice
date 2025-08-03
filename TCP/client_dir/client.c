@@ -49,6 +49,9 @@ int main(int argc, char const *argv[])
 	else
 		port = PORT;
 
+	setbuf(stdout, NULL); // Disable buffering for stdout
+	setbuf(stderr, NULL); // Disable buffering for stderr
+
 	// Setup TCP socket hints
 	hints = (struct addrinfo){0};
 	hints.ai_family = AF_UNSPEC;

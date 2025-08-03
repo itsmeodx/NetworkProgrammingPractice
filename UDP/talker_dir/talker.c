@@ -60,6 +60,9 @@ int main(int argc, char const *argv[])
 		port = DEFAULT_PORT;
 	}
 
+	setbuf(stdout, NULL); // Disable buffering for stdout
+	setbuf(stderr, NULL); // Disable buffering for stderr
+
 	// Setup UDP socket hints
 	hints = (struct addrinfo){0};
 	hints.ai_family = AF_INET;
@@ -134,7 +137,7 @@ int main(int argc, char const *argv[])
 			usleep(1000);
 		}
 	}
-	
+
 	// Send delimiter to mark end of message (always)
 	if ((rc = sendto(sockFd, "\r", 1, 0,
 					 p->ai_addr, p->ai_addrlen)) == -1)

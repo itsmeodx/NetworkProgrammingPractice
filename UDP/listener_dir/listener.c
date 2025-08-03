@@ -48,6 +48,9 @@ int main(int argc, char const *argv[])
 	else
 		port = DEFAULT_PORT;
 
+	setbuf(stdout, NULL); // Disable buffering for stdout
+	setbuf(stderr, NULL); // Disable buffering for stderr
+
 	// Setup UDP socket hints
 	hints = (struct addrinfo){0};
 	hints.ai_family = AF_INET;
@@ -95,10 +98,6 @@ int main(int argc, char const *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	// Disable buffering for stdout and stderr
-	setbuf(stdout, NULL);
-	setbuf(stderr, NULL);
-
 	// Main receive loop: print message up to delimiter '\r'
 	char buf[MAXDSIZE];
 	struct sockaddr_storage theirAddr;
@@ -106,7 +105,7 @@ int main(int argc, char const *argv[])
 	int rc;
 	while (true)
 	{
-		write(STDOUT_FILENO, "listener: waiting to recvfrom...\n", 33);
+		printf("listener: waiting to recvfrom...\n");
 
 		// Receive datagram
 		if ((rc = recvfrom(sockFd, buf, MAXDSIZE, 0,
