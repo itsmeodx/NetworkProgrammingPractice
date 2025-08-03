@@ -16,6 +16,7 @@
 #include <arpa/inet.h>
 #include <iso646.h>
 #include <termios.h>
+#include <signal.h>
 
 #define DEFAULT_PORT "4242"
 #define BUFFER_SIZE 256
@@ -40,10 +41,18 @@ void *getinaddr(struct sockaddr *sa)
  */
 void enable_raw_mode(void)
 {
-	tcgetattr(STDIN_FILENO, &orig_termios);
+	if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
+	{
+		perror("ChatClient: enable_raw_mode: tcgetattr()");
+		exit(EXIT_FAILURE);
+	}
 	struct termios raw = orig_termios;
 	raw.c_lflag &= ~(ECHO | ICANON);
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+	{
+		perror("ChatClient: enable_raw_mode: tcsetattr()");
+		exit(EXIT_FAILURE);
+	}
 }
 
 /**
@@ -51,7 +60,11 @@ void enable_raw_mode(void)
  */
 void disable_raw_mode(void)
 {
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
+	{
+		perror("ChatClient: disable_raw_mode: tcsetattr()");
+		// Don't exit here - we might be in cleanup
+	}
 }
 
 /**
@@ -61,6 +74,17 @@ void redraw_input_line(void)
 {
 	printf("\rYou: %.*s", input_pos, current_input);
 	fflush(stdout);
+}
+
+/**
+ * @brief Signal handler to restore terminal mode
+ */
+void signal_handler(int sig)
+{
+	(void)sig; // Suppress unused parameter warning
+	disable_raw_mode();
+	printf("\nChatClient: interrupted, disconnecting...\n");
+	exit(EXIT_SUCCESS);
 }
 
 /**
@@ -104,13 +128,21 @@ void handleUserInput(int sockFd)
 		exit(EXIT_SUCCESS);
 	}
 
+	// Handle Ctrl+D (EOF - ASCII 4) - using portable helper
+	if (c == 4)
+	{
+		printf("\nChatServer: shutting down...\n");
+		disable_raw_mode();
+		exit(EXIT_SUCCESS);
+	}
+
 	if (c == '\n' || c == '\r')
 	{
 		// Send the message
 		if (input_pos > 0)
 		{
 			current_input[input_pos] = '\n';
-			if (send(sockFd, current_input, input_pos + 1, 0) == -1)
+			if (send(sockFd, current_input, input_pos + 1, MSG_NOSIGNAL) == -1)
 			{
 				perror("ChatClient: handleUserInput: send()");
 				disable_raw_mode();
@@ -260,6 +292,11 @@ int main(int argc, char const *argv[])
 
 	// Enable raw mode for character-by-character input
 	enable_raw_mode();
+
+	// Set up signal handlers to restore terminal on exit
+	signal(SIGINT, signal_handler);
+	signal(SIGTERM, signal_handler);
+	signal(SIGPIPE, SIG_IGN); // Ignore SIGPIPE to prevent crashes on server disconnect
 
 	printf("You: ");
 	fflush(stdout);
