@@ -9,6 +9,8 @@ TCP and UDP networking in C. Chunked transfer, delimiter handling, and simple bu
 
 - **TCP Server**: `server [MSG] [PORT]`
 - **TCP Client**: `client hostname [PORT]`
+- **TCP Chat Server**: `chatserver [PORT]`
+- **TCP Chat Client**: `chatclient hostname [PORT]`
 - **UDP Listener**: `listener [PORT]`
 - **UDP Talker**: `talker hostname [MSG] [PORT]`
 
@@ -22,9 +24,13 @@ All binaries are built in the project root. See `Makefile` and `docker-compose.y
 make all          # Build all binaries (TCP and UDP)
 make server       # Build TCP server only
 make client       # Build TCP client only
+make chatserver   # Build TCP chat server only
+make chatclient   # Build TCP chat client only
 make listener     # Build UDP listener only
 make talker       # Build UDP talker only
 make test-tcp     # Run TCP test (server+client)
+make test-udp     # Run UDP test (listener+talker)
+make test-chat    # Run chat test (chatserver+chatclient)
 make clean        # Remove built binaries
 make re           # Clean and rebuild all
 ```
@@ -41,8 +47,8 @@ make docker-down  # Stop all containers
 ## 🛠️ Build System
 
 - Uses a single Makefile with explicit rules for each binary.
-- Source files are in `TCP/server_dir`, `TCP/client_dir`, `UDP/listener_dir`, `UDP/talker_dir`.
-- Binaries are built in the project root: `server`, `client`, `listener`, `talker`.
+- Source files are in `TCP/server_dir`, `TCP/client_dir`, `TCP/chatserver_dir`, `TCP/chatclient_dir`, `UDP/listener_dir`, `UDP/talker_dir`.
+- Binaries are built in the project root: `server`, `client`, `chatserver`, `chatclient`, `listener`, `talker`.
 - `make debug` adds debug flags.
 
 - Multi-stage builds for minimal images (Alpine runtime).
@@ -58,21 +64,19 @@ NetworkProgrammingPractice/
 ├── Makefile
 ├── docker-compose.yml
 ├── TCP/
-│   ├── server_dir/
-│   │   ├── server.c
-│   │   └── Dockerfile
-│   └── client_dir/
-│       ├── client.c
-│       └── Dockerfile
+│   ├── chatclient_dir/
+│   ├── chatserver_dir/
+│   ├── client_dir/
+│   └── server_dir/
 ├── UDP/
 │   ├── listener_dir/
-│   │   └── listener.c
 │   └── talker_dir/
-│       └── talker.c
 ├── server
 ├── client
+├── chatserver
+├── chatclient
 ├── listener
-├── talker
+└── talker
 ```
 
 
@@ -90,6 +94,12 @@ NetworkProgrammingPractice/
 - Start server: `./server [MSG] [PORT]` (e.g. `./server "Hey!" 4242`).\
 If message omitted, uses default "Hello from server!"; if port omitted, uses 4242.
 - Start client: `./client hostname [PORT]` (e.g. `./client localhost 4242`).\
+If port omitted, uses 4242.
+
+### TCP Chat
+- Start chat server: `./chatserver [PORT]` (e.g. `./chatserver 4242`).\
+If port omitted, uses default 4242.
+- Start chat client: `./chatclient hostname [PORT]` (e.g. `./chatclient localhost 4242`).\
 If port omitted, uses 4242.
 
 ### UDP
