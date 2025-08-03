@@ -57,6 +57,7 @@ dkms.conf
 # binary files
 client
 server
+chatclient
 chatserver
 talker
 listener

@@ -29,6 +29,33 @@ services:
       - server
     stdin_open: true
     tty: true
+  chatserver:
+    container_name: npp_chatserver
+    build:
+      context: ./TCP/chatserver_dir
+    expose:
+      - 4242
+    networks:
+      - npp
+    command:
+      - ./chatserver
+    stdin_open: true
+    tty: true
+  chatclient:
+    container_name: npp_chatclient
+    build:
+      context: ./TCP/chatclient_dir
+    depends_on:
+      - chatserver
+    expose:
+      - 4242
+    networks:
+      - npp
+    command:
+      - ./chatclient
+      - chatserver
+    stdin_open: true
+    tty: true
   listener:
     container_name: npp_listener
     build:

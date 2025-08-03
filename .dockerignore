@@ -5,6 +5,8 @@ server
 client
 listener
 talker
+chatserver
+chatclient
 
 # Editor folders
 .vscode/
