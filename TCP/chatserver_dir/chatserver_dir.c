@@ -23,14 +23,32 @@ static int input_pos = 0;
 static struct termios orig_termios;
 
 /**
+ * @brief Extracts pointer to IPv4 or IPv6 address from sockaddr.
+ */
+void *getinaddr(struct sockaddr *sa)
+{
+	if (sa->sa_family == AF_INET)
+		return (&(((struct sockaddr_in *)sa)->sin_addr));
+	return (&(((struct sockaddr_in6 *)sa)->sin6_addr));
+}
+
+/**
  * @brief Enable raw mode for terminal input
  */
 void enable_raw_mode(void)
 {
-	tcgetattr(STDIN_FILENO, &orig_termios);
+	if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
+	{
+		perror("ChatServer: enable_raw_mode: tcgetattr()");
+		exit(EXIT_FAILURE);
+	}
 	struct termios raw = orig_termios;
 	raw.c_lflag &= ~(ECHO | ICANON);
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+	{
+		perror("ChatServer: enable_raw_mode: tcsetattr()");
+		exit(EXIT_FAILURE);
+	}
 }
 
 /**
@@ -38,7 +56,11 @@ void enable_raw_mode(void)
  */
 void disable_raw_mode(void)
 {
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
+	{
+		perror("ChatServer: disable_raw_mode: tcsetattr()");
+		// Don't exit here - we might be in cleanup
+	}
 }
 
 /**
@@ -48,6 +70,31 @@ void redraw_input_line(void)
 {
 	printf("\rServer: %.*s", input_pos, current_input);
 	fflush(stdout);
+}
+
+/**
+ * @brief Signal handler to restore terminal mode
+ */
+void signal_handler(int sig)
+{
+	(void)sig; // Suppress unused parameter warning
+	disable_raw_mode();
+	printf("\nChatServer: interrupted, shutting down...\n");
+	exit(EXIT_SUCCESS);
+}
+
+/**
+ * @brief Portable IP string extraction from sockaddr (IPv4/IPv6)
+ * @param sa Pointer to sockaddr
+ * @param out Buffer to write IP string
+ * @param outlen Length of buffer
+ * @return out on success, NULL on failure
+ */
+const char *inet_ntop2(const struct sockaddr *sa, char *out, socklen_t outlen)
+{
+	void *addr = getinaddr((struct sockaddr *)sa);
+
+	return (inet_ntop(sa->sa_family, addr, out, outlen));
 }
 
 void addNewConnection(int serverFd, struct pollfd **fds, int *fds_count, int *fds_capacity)
@@ -60,6 +107,11 @@ void addNewConnection(int serverFd, struct pollfd **fds, int *fds_count, int *fd
 		perror("ChatServer: addNewConnection: accept()");
 		return;
 	}
+
+	// Get client IP address for logging
+	char clientIP[INET6_ADDRSTRLEN];
+	if (!inet_ntop2((struct sockaddr *)&clientAddr, clientIP, sizeof(clientIP)))
+		strcpy(clientIP, "?");
 
 	if (*fds_count >= *fds_capacity)
 	{
@@ -76,7 +128,9 @@ void addNewConnection(int serverFd, struct pollfd **fds, int *fds_count, int *fd
 	(*fds)[*fds_count].fd = newFd;
 	(*fds)[*fds_count].events = POLLIN;
 	(*fds_count)++;
-	printf("ChatServer: new connection accepted\n");
+	printf("\nChatServer: new connection from %s (fd %d)\n", clientIP, newFd);
+	printf("Server: ");
+	fflush(stdout);
 }
 
 /**
@@ -94,17 +148,45 @@ void handleServerInput(int serverFd, struct pollfd **fds, int *fds_count)
 		exit(EXIT_SUCCESS);
 	}
 
+	// Handle Ctrl+D (EOF - ASCII 4) - using portable helper
+	if (c == 4)
+	{
+		printf("\nChatServer: shutting down...\n");
+		disable_raw_mode();
+		exit(EXIT_SUCCESS);
+	}
+
 	if (c == '\n' || c == '\r')
 	{
 		// Send the message
 		if (input_pos > 0)
 		{
-			// Check for server commands
-			if (strncmp(current_input, "exit", 4) == 0 || strncmp(current_input, "quit", 4) == 0)
+			// Check for server commands (need full word match)
+			current_input[input_pos] = '\0'; // Temporarily null-terminate for comparison
+			if ((strcmp(current_input, "exit") == 0) || (strcmp(current_input, "quit") == 0))
 			{
 				printf("\nChatServer: shutting down...\n");
 				disable_raw_mode();
 				exit(EXIT_SUCCESS);
+			}
+
+			// clear the chat (for the server and clients)
+			if (strcmp(current_input, "clear") == 0)
+			{
+				for (int i = 0; i < *fds_count; i++)
+				{
+					if ((*fds)[i].fd != serverFd && (*fds)[i].fd != STDIN_FILENO)
+					{
+						if (send((*fds)[i].fd, "\033c", 4, MSG_NOSIGNAL) == -1)
+							perror("ChatServer: handleServerInput: send()");
+					}
+				}
+				printf("\033c"); // Clear terminal
+				input_pos = 0;
+				memset(current_input, 0, sizeof(current_input));
+				printf("Server: ");
+				fflush(stdout);
+				return;
 			}
 
 			// Send message to all clients
@@ -116,7 +198,7 @@ void handleServerInput(int serverFd, struct pollfd **fds, int *fds_count)
 			{
 				if ((*fds)[i].fd != serverFd && (*fds)[i].fd != STDIN_FILENO)
 				{
-					if (send((*fds)[i].fd, message, strlen(message), 0) == -1)
+					if (send((*fds)[i].fd, message, strlen(message), MSG_NOSIGNAL) == -1)
 						perror("ChatServer: handleServerInput: send()");
 				}
 			}
@@ -128,18 +210,18 @@ void handleServerInput(int serverFd, struct pollfd **fds, int *fds_count)
 		printf("\nServer: ");
 		fflush(stdout);
 	}
-	else if (c == 127 || c == '\b')  // Backspace
+	else if (c == 127 || c == '\b') // Backspace
 	{
 		if (input_pos > 0)
 		{
 			input_pos--;
 			current_input[input_pos] = '\0';
 			redraw_input_line();
-			printf(" \b");  // Clear the deleted character
+			printf(" \b"); // Clear the deleted character
 			fflush(stdout);
 		}
 	}
-	else if (c >= 32 && c <= 126 && input_pos < BUFFER_SIZE - 2)  // Printable characters
+	else if (c >= 32 && c <= 126 && input_pos < BUFFER_SIZE - 2) // Printable characters
 	{
 		current_input[input_pos++] = c;
 		printf("%c", c);
@@ -162,6 +244,8 @@ void handleClientMessage(int serverFd, struct pollfd **fds,
 		close(clientFd);
 		// Remove the client from the fds array by replacing it with the last one
 		(*fds)[*fd_i] = (*fds)[--(*fds_count)];
+		// Decrement fd_i to re-check this position (which now has a different client)
+		(*fd_i)--;
 		if (*fds_count < *fds_capacity / 4)
 		{
 			*fds_capacity /= 2;
@@ -186,7 +270,7 @@ void handleClientMessage(int serverFd, struct pollfd **fds,
 	{
 		if ((*fds)[i].fd != clientFd && (*fds)[i].fd != serverFd && (*fds)[i].fd != STDIN_FILENO)
 		{
-			if (send((*fds)[i].fd, message, strlen(message), 0) == -1)
+			if (send((*fds)[i].fd, message, strlen(message), MSG_NOSIGNAL) == -1)
 				perror("ChatServer: handleClientMessage: send()");
 		}
 	}
@@ -282,8 +366,10 @@ int main(void)
 
 	printf("ChatServer: listening on port %s\n", port);
 
-	// Enable raw mode for character-by-character input
-	enable_raw_mode();
+	// Set up signal handlers to restore terminal on exit
+	signal(SIGINT, signal_handler);
+	signal(SIGTERM, signal_handler);
+	signal(SIGPIPE, SIG_IGN); // Ignore SIGPIPE to prevent crashes on client disconnect
 
 	int fds_capacity = 10, fds_count = 0;
 	struct pollfd *fds = malloc(fds_capacity * sizeof(struct pollfd));
@@ -304,6 +390,9 @@ int main(void)
 	fds[1].events = POLLIN;
 	fds_count++;
 
+	// Enable raw mode for character-by-character input
+	enable_raw_mode();
+
 	printf("ChatServer: waiting for connections...\n");
 	printf("ChatServer: type messages to broadcast, 'exit' or 'quit' to shutdown\n");
 	printf("Server: ");
@@ -318,6 +407,8 @@ int main(void)
 		{
 			perror("ChatServer: main: poll()");
 			disable_raw_mode();
+			free(fds);
+			close(serverFd);
 			return (EXIT_FAILURE);
 		}
 
